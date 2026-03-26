@@ -1,0 +1,23 @@
+{
+  "name": "@hallofthegods/glowitheflow.com",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "nuxt": "^4.4.2",
+    "vue": "^3.5.30",
+    "vue-router": "^5.0.4"
+  },
+  "devDependencies": {
+    "@nuxt/fonts": "^0.14.0",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "@tailwindcss/postcss": "^4.2.2",
+    "tailwindcss": "^4.2.2"
+  }
+}

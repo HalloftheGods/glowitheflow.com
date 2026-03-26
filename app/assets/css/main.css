@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", sans-serif;
+  --font-display: "Comfortaa", sans-serif;
+  --font-mono: "Fira Code", monospace;
+
+  --color-glow-deep: #050508;
+  --color-glow-cyan: #0ff;
+  --color-glow-gold: #c5a059;
+  --color-glow-text: #e0e0ff;
+}
+
+@layer base {
+  body {
+    @apply bg-glow-deep text-glow-text font-sans antialiased text-base leading-relaxed m-0 p-0 overflow-hidden;
+  }
+}
+
+@layer components {
+  .canvas-container {
+    @apply absolute inset-0 z-0;
+  }
+  
+  .ui-overlay {
+    @apply absolute inset-0 z-10 pointer-events-none flex flex-col justify-center items-center;
+  }
+  
+  .glass-panel {
+    @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 pointer-events-auto;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+}
