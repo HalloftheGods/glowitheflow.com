@@ -24,15 +24,16 @@
     <div
       class="absolute bottom-6 md:bottom-8 left-0 right-0 text-center text-[10px] md:text-xs font-mono text-glow-text/40 tracking-[0.2em] uppercase flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 drop-shadow"
     >
-      <span>v0.1.0</span>
+      <span>v{{ version }}</span>
       <span class="hidden sm:inline opacity-50">|</span>
-      <span>&copy; 2026 Hall of the Gods, Inc.</span>
+      <span>&copy; 2006-2026 <a href="https://hallofthegods.com/" target="_blank" class="hover:text-white transition-colors pointer-events-auto">Hall of the Gods, Inc.</a> All rights reserved.</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { version } from '../../package.json'
 
 useHead({
   title: 'GlowitheFlow | Hall of the Gods',
