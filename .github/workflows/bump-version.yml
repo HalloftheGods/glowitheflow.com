@@ -1,0 +1,49 @@
+name: Auto Bump Version
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  bump-version:
+    # Skip if the commit message contains [skip ci] or is a version bump commit
+    if: "!startsWith(github.event.head_commit.message, 'chore(version):')"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          # A personal access token might be needed if you have branch protection rules,
+          # otherwise the standard GITHUB_TOKEN works here.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Bump Patch Version
+        run: |
+          # Bump the patch version. %s will be replaced by the new version number
+          # Using [skip ci] ensures that this commit doesn't trigger another workflow run.
+          pnpm version patch -m "chore(version): bump to v%s [skip ci]"
+
+      - name: Create Date Tag
+        run: |
+          DATE_TAG=$(date +"v%y.%m.%d.%H.%M")
+          git tag $DATE_TAG
+
+      - name: Push Changes and Tags
+        run: |
+          git push origin main
+          git push --tags
