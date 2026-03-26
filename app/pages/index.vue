@@ -44,8 +44,21 @@ interface Particle {
   y: number
   vx: number
   vy: number
+  baseVx: number
+  baseVy: number
   size: number
+  baseSize: number
   hue: number
+  baseHue: number
+}
+
+interface Ripple {
+  x: number
+  y: number
+  radius: number
+  maxRadius: number
+  speed: number
+  strength: number
 }
 
 onMounted(() => {
@@ -67,17 +80,59 @@ onMounted(() => {
   window.addEventListener('resize', resize)
   resize()
   
+  const ripples: Ripple[] = []
+  let mouseX = -1000
+  let mouseY = -1000
+
+  const handleMouseMove = (e: MouseEvent) => {
+    mouseX = e.clientX
+    mouseY = e.clientY
+  }
+
+  const handleMouseLeave = () => {
+    mouseX = -1000
+    mouseY = -1000
+  }
+
+  const handleClick = (e: MouseEvent) => {
+    ripples.push({
+      x: e.clientX,
+      y: e.clientY,
+      radius: 0,
+      maxRadius: 350,
+      speed: 8,
+      strength: 20
+    })
+  }
+
+  window.addEventListener('mousemove', handleMouseMove)
+  document.addEventListener('mouseleave', handleMouseLeave)
+  window.addEventListener('click', handleClick)
+  window.addEventListener('touchstart', (e: TouchEvent) => {
+    if (e.touches[0]) {
+      handleClick(e.touches[0] as unknown as MouseEvent)
+    }
+  }, { passive: true })
+
   const particles: Particle[] = []
   const maxParticles = window.innerWidth < 768 ? 60 : 150
   
   for (let i = 0; i < maxParticles; i++) {
+    const vx = (Math.random() - 0.5) * 1.5
+    const vy = (Math.random() - 0.5) * 1.5
+    const size = Math.random() * 2 + 0.5
+    const hue = Math.random() * 40 + 170 // Cyan to Deep Blue
     particles.push({
       x: Math.random() * w,
       y: Math.random() * h,
-      vx: (Math.random() - 0.5) * 1.5,
-      vy: (Math.random() - 0.5) * 1.5,
-      size: Math.random() * 2 + 0.5,
-      hue: Math.random() * 40 + 170 // Cyan to Deep Blue
+      vx,
+      vy,
+      baseVx: vx,
+      baseVy: vy,
+      size,
+      baseSize: size,
+      hue,
+      baseHue: hue
     })
   }
   
@@ -86,22 +141,81 @@ onMounted(() => {
     ctx.fillStyle = 'rgba(5, 5, 8, 0.2)'
     ctx.fillRect(0, 0, w, h)
     
+    // Render and update ripples
+    for (let i = ripples.length - 1; i >= 0; i--) {
+      const r = ripples[i]!
+      r.radius += r.speed
+      
+      const alpha = 1 - (r.radius / r.maxRadius)
+      if (alpha <= 0) {
+        ripples.splice(i, 1)
+        continue
+      }
+      
+      ctx.beginPath()
+      ctx.arc(r.x, r.y, r.radius, 0, Math.PI * 2)
+      ctx.strokeStyle = `hsla(190, 100%, 60%, ${alpha * 0.3})`
+      ctx.lineWidth = 1.5 + (r.strength / 10)
+      ctx.stroke()
+    }
+    
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i]!
+      
+      p.vx += (p.baseVx - p.vx) * 0.05
+      p.vy += (p.baseVy - p.vy) * 0.05
+      p.size += (p.baseSize - p.size) * 0.1
+      p.hue += (p.baseHue - p.hue) * 0.1
+      
+      let pAlpha = 0.8
+      
+      const mdx = p.x - mouseX
+      const mdy = p.y - mouseY
+      const mdist = Math.sqrt(mdx * mdx + mdy * mdy)
+      
+      // Push effect away from mouse
+      if (mdist < 150) {
+        const force = (150 - mdist) / 150
+        const angle = Math.atan2(mdy, mdx)
+        p.vx += Math.cos(angle) * force * 0.5
+        p.vy += Math.sin(angle) * force * 0.5
+        p.size = Math.max(p.size, p.baseSize + force * 1.5)
+        p.hue = Math.min(220, p.hue + force * 20)
+        pAlpha = 1
+      }
+      
+      for (const r of ripples) {
+        const dx = p.x - r.x
+        const dy = p.y - r.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        const distToRing = Math.abs(dist - r.radius)
+        
+        if (distToRing < 40) {
+          const force = r.strength * (1 - r.radius / r.maxRadius) * (1 - distToRing / 40)
+          const angle = Math.atan2(dy, dx)
+          
+          p.vx += Math.cos(angle) * force * 0.2
+          p.vy += Math.sin(angle) * force * 0.2
+          
+          p.size = Math.max(p.size, p.baseSize + force * 0.8)
+          p.hue = 220
+          pAlpha = 1
+        }
+      }
       
       // Update pos
       p.x += p.vx
       p.y += p.vy
       
       // Bounce
-      if (p.x < 0 || p.x > w) p.vx *= -1
-      if (p.y < 0 || p.y > h) p.vy *= -1
+      if (p.x < 0 || p.x > w) { p.vx *= -1; p.baseVx *= -1; p.x = Math.max(0, Math.min(w, p.x)) }
+      if (p.y < 0 || p.y > h) { p.vy *= -1; p.baseVy *= -1; p.y = Math.max(0, Math.min(h, p.y)) }
       
       // Draw particle
       ctx.beginPath()
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2)
-      ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, 0.8)`
-      ctx.shadowBlur = 10
+      ctx.fillStyle = `hsla(${p.hue}, 100%, 60%, ${pAlpha})`
+      ctx.shadowBlur = p.size > p.baseSize ? 15 : 10
       ctx.shadowColor = `hsla(${p.hue}, 100%, 60%, 1)`
       ctx.fill()
       
@@ -130,6 +244,9 @@ onMounted(() => {
   
   onUnmounted(() => {
     window.removeEventListener('resize', resize)
+    window.removeEventListener('mousemove', handleMouseMove)
+    document.removeEventListener('mouseleave', handleMouseLeave)
+    window.removeEventListener('click', handleClick)
     cancelAnimationFrame(animationFrameId)
   })
 })
