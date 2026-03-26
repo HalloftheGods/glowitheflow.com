@@ -1,19 +1,29 @@
 <template>
-  <div class="canvas-container w-full h-full relative" ref="containerRef">
-    <canvas ref="canvasRef" class="w-full h-full block"></canvas>
+  <div
+    class="canvas-container w-full h-full relative"
+    ref="containerRef"
+  >
+    <canvas
+      ref="canvasRef"
+      class="w-full h-full block"
+    ></canvas>
   </div>
-  <div class="ui-overlay pointer-events-none flex flex-col justify-center items-center absolute inset-0 z-10 text-center px-4">
-    <p class="text-xs md:text-sm font-sans tracking-widest text-glow-gold/80 mb-5 md:mb-8 drop-shadow-[0_0_8px_rgba(197,160,89,0.5)]">
-      Hall of the Gods, Inc. Presents...
-    </p>
-    <h1 class="text-7xl md:text-9xl font-display font-light text-glow-cyan drop-shadow-[0_0_20px_rgba(0,255,255,0.7)] tracking-wider">
+  <div
+    class="ui-overlay pointer-events-none flex flex-col justify-center items-center absolute inset-0 z-10 text-center px-4"
+  >
+    <h1
+      class="text-7xl md:text-9xl font-display font-normal text-transparent bg-clip-text bg-gradient-to-br from-white via-glow-cyan to-blue-600 drop-shadow-[0_0_20px_rgba(0,255,255,0.6)] tracking-wider pb-2"
+    >
       GlowitheFlow
     </h1>
-    <p class="text-sm md:text-base font-sans tracking-[0.2em] text-glow-cyan/60 italic mt-6 md:mt-8 drop-shadow-[0_0_10px_rgba(0,255,255,0.4)]">
-      Coming Soon
+    <p
+      class="text-sm md:text-base font-sans tracking-[0.2em] text-white mt-6 md:mt-8 drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">
+      Presented By Hall of the Gods, Inc.
     </p>
-    
-    <div class="absolute bottom-6 md:bottom-8 left-0 right-0 text-center text-[10px] md:text-xs font-mono text-glow-text/40 tracking-[0.2em] uppercase flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 drop-shadow">
+
+    <div
+      class="absolute bottom-6 md:bottom-8 left-0 right-0 text-center text-[10px] md:text-xs font-mono text-glow-text/40 tracking-[0.2em] uppercase flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4 drop-shadow"
+    >
       <span>v0.1.0</span>
       <span class="hidden sm:inline opacity-50">|</span>
       <span>&copy; 2026 Hall of the Gods, Inc.</span>
