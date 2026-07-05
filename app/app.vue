@@ -1,9 +1,11 @@
 <template>
-  <main class="w-screen h-screen relative bg-glow-deep overflow-hidden">
-    <NuxtPage />
-  </main>
+  <NuxtPage />
 </template>
 
-<script setup lang="ts">
-import '~/assets/css/main.css'
-</script>
+<style>
+body, html {
+  margin: 0;
+  padding: 0;
+  background-color: black;
+}
+</style>
