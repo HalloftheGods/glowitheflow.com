@@ -1,0 +1,13 @@
+{
+    "name": "glow/glowitheflow",
+    "description": "Milestone 1 WordPress plugin base and custom database tables",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">=7.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "brain/monkey": "^2.6.1",
+        "mockery/mockery": "^1.5"
+    }
+}

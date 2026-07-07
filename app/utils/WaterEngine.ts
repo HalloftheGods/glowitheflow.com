@@ -3,6 +3,7 @@ import * as THREE from 'three';
 export interface WaterThought {
   x: number;
   y: number;
+  width: number;
   passengers: number;
 }
 
@@ -26,6 +27,7 @@ export class WaterEngine {
   private tempVec = new THREE.Vector3();
   private thoughts: WaterThought[] = [];
   private ripples: WaterRipple[] = [];
+  private isDashboardOpen: boolean = false;
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -92,6 +94,10 @@ export class WaterEngine {
     this.ripples = ripples;
   }
 
+  public setDashboardState(isOpen: boolean) {
+    this.isDashboardOpen = isOpen;
+  }
+
   private onResize() {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
@@ -107,21 +113,34 @@ export class WaterEngine {
     const camPos = this.camera.position;
     const worldRatio = (2 * Math.tan(22.5 * Math.PI / 180) * camPos.y) / window.innerHeight;
 
-    // Pre-calculate world positions for thoughts using re-usable tempVec
-    const thoughtWorldPos: {x: number, z: number, strength: number}[] = [];
+    const thoughtWorldPos: {xMin: number, xMax: number, z: number, strength: number}[] = [];
     for (const t of this.thoughts) {
+      const halfW = t.width / 2;
       this.tempVec.set(
-        (t.x / window.innerWidth) * 2 - 1,
+        ((t.x - halfW) / window.innerWidth) * 2 - 1,
         -(t.y / window.innerHeight) * 2 + 1,
         0.5
       );
       this.tempVec.unproject(this.camera);
       this.tempVec.sub(camPos).normalize();
-      const distance = -camPos.y / this.tempVec.y;
+      const distLeft = -camPos.y / this.tempVec.y;
+      const xMin = camPos.x + this.tempVec.x * distLeft;
+      const z = camPos.z + this.tempVec.z * distLeft;
+
+      this.tempVec.set(
+        ((t.x + halfW) / window.innerWidth) * 2 - 1,
+        -(t.y / window.innerHeight) * 2 + 1,
+        0.5
+      );
+      this.tempVec.unproject(this.camera);
+      this.tempVec.sub(camPos).normalize();
+      const distRight = -camPos.y / this.tempVec.y;
+      const xMax = camPos.x + this.tempVec.x * distRight;
       
       thoughtWorldPos.push({
-        x: camPos.x + this.tempVec.x * distance,
-        z: camPos.z + this.tempVec.z * distance,
+        xMin,
+        xMax,
+        z,
         strength: t.passengers
       });
     }
@@ -153,33 +172,39 @@ export class WaterEngine {
       const z = position.getZ(i);
       
       // Slower, denser base waves flowing in the direction of the thoughts (upwards, -Z)
-      const flowTime = time * 1.0;
+      const flowTime = time * 0.5; // Halved for calmer water
       const wave1 = Math.sin(x * 0.1 + (z + flowTime * 5.0) * 0.12) * 1.5;
       const wave2 = Math.cos((z + flowTime * 4.0) * 0.08) * 2.0;
       const wave3 = Math.sin(x * 0.05 - (z + flowTime * 3.0) * 0.06) * 1.2;
       
       let y = wave1 + wave2 + wave3;
       
-      // Create a gravity well / depression in the center beneath the FlowComposer
+      // Create a gravity well / depression in the center beneath the UI
       const distFromCenterSq = x * x + z * z;
-      if (distFromCenterSq < 2500) { // 50 * 50
-        const distFromCenter = Math.sqrt(distFromCenterSq);
-        const depression = Math.cos((distFromCenter / 50) * (Math.PI / 2)); 
-        y -= depression * 15; // Sink the water in the center
+      const wellRadiusX = this.isDashboardOpen ? 35 : 12; // Adjusted to match screen proportions (world units)
+      const wellRadiusZ = this.isDashboardOpen ? 25 : 12;
+      const wellDepth = this.isDashboardOpen ? 12 : 8;
+      
+      const normalizedDist = Math.sqrt((x * x) / (wellRadiusX * wellRadiusX) + (z * z) / (wellRadiusZ * wellRadiusZ));
+      
+      if (normalizedDist < 1.0) {
+        const depression = Math.cos(normalizedDist * (Math.PI / 2)); 
+        const floatBob = this.isDashboardOpen ? Math.sin(time * 1.5) * 2.5 : 0;
+        y -= (depression * wellDepth) + floatBob; // Sink the water in the center
       }
 
-      // Tie water ripples directly to flowing text (thoughts)
       for (const tw of thoughtWorldPos) {
-        const dx = x - tw.x;
+        const closestX = Math.max(tw.xMin, Math.min(x, tw.xMax));
+        const dx = x - closestX;
         const dz = z - tw.z;
         const distSq = dx * dx + dz * dz;
         
         const radius = 30 + tw.strength * 5;
         const rSq = radius * radius;
-        if (distSq < rSq) {
+        const isWithinRange = distSq < rSq;
+        if (isWithinRange) {
            const dist = Math.sqrt(distSq);
            const rippleAlpha = Math.cos((dist / radius) * (Math.PI / 2));
-           // Create a bulge (pushing up) and expanding wake ripples
            const bulge = rippleAlpha * (5 + tw.strength * 1.0);
            const wave = Math.sin(dist * 0.5 - time * 3) * 2.0 * rippleAlpha;
            y += bulge + wave; 

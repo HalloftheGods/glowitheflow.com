@@ -1,40 +1,29 @@
 <template>
-  <div class="price-slider-card flex flex-col items-end group relative transition-all duration-300">
-    
-    <!-- Floating Panel (Hovering above the button) -->
-    <div class="absolute bottom-full right-0 pb-4 w-full min-w-[260px] transition-all duration-300 opacity-0 translate-y-4 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto z-50">
-      <div class="bg-[rgba(10,15,30,0.85)] border border-[rgba(0,255,255,0.3)] rounded-2xl backdrop-blur-xl p-5 flex flex-col gap-4 shadow-[0_10px_40px_rgba(0,0,0,0.5)]">
-        <div class="flex justify-between items-center w-full px-1">
-        <span class="text-cyan-300/60 text-xs font-mono uppercase tracking-widest">My Vote</span>
-        <span class="text-cyan-200 text-sm font-mono font-bold flex items-center gap-1">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 2c-1.716 3.197-5 7.14-5 10a5 5 0 1010 0c0-2.86-3.284-6.803-5-10z" clip-rule="evenodd" />
-          </svg>
-          {{ formattedVote }} Dropplets
-        </span>
-      </div>
-        <input
-          type="range"
-          min="1"
-          max="100"
-          step="1"
-          v-model.number="localVote"
-          @input="emitVote"
-          class="styled-slider w-full"
-        />
-        <p class="text-xs text-cyan-300/70 text-center font-sans leading-relaxed mt-2 px-2">
-        Vote on the Dropplet cost to stream a link. The community balances the pool.
-      </p>
-      </div>
+  <div class="price-slider-card flex flex-col w-full relative transition-all duration-300 bg-cyan-950/40 p-5 rounded-2xl border border-cyan-500/15">
+    <div class="flex justify-between items-center w-full mb-4">
+      <span class="text-cyan-300/60 text-xs font-mono uppercase tracking-widest">Community Link Price</span>
+      <span class="text-cyan-100 text-lg font-mono font-bold flex items-center gap-1.5 drop-shadow-[0_0_8px_rgba(0,255,255,0.4)]">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M10 2c-1.716 3.197-5 7.14-5 10a5 5 0 1010 0c0-2.86-3.284-6.803-5-10z" clip-rule="evenodd" />
+        </svg>
+        {{ formattedPrice }} Droplets
+      </span>
     </div>
-
-    <!-- Toggle Button (Bottom Right) -->
-    <button class="flex items-center justify-center gap-2 bg-[rgba(10,15,30,0.6)] border border-[rgba(0,255,255,0.3)] rounded-full px-6 py-3 backdrop-blur-md shadow-[0_0_15px_rgba(0,255,255,0.15)] group-hover:border-[rgba(0,255,255,0.6)] group-hover:shadow-[0_0_25px_rgba(0,255,255,0.3)] transition-all cursor-pointer pointer-events-auto">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-cyan-400" viewBox="0 0 20 20" fill="currentColor">
-        <path fill-rule="evenodd" d="M10 2c-1.716 3.197-5 7.14-5 10a5 5 0 1010 0c0-2.86-3.284-6.803-5-10z" clip-rule="evenodd" />
-      </svg>
-      <span class="text-cyan-100 font-mono text-base tracking-wide">{{ formattedPrice }} Dropplets</span>
-    </button>
+    
+    <input
+      type="range"
+      min="1"
+      max="100"
+      step="1"
+      v-model.number="localVote"
+      @input="emitVote"
+      class="styled-slider w-full mb-3"
+    />
+    
+    <div class="flex justify-between items-center w-full mt-1">
+      <span class="text-xs text-cyan-300/50 font-mono uppercase tracking-wider">Your Vote: {{ formattedVote }}</span>
+      <span class="text-xs text-cyan-300/40 font-sans">Adjust to shift network price</span>
+    </div>
   </div>
 </template>
 

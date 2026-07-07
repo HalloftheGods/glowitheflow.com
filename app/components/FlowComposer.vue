@@ -10,17 +10,19 @@
       />
       <button
         @click="submit"
-        :disabled="!content.trim()"
+        :disabled="!content.trim() || (hasLink && !hasEnoughDroplets)"
         class="disabled:opacity-50 transition-all duration-300 px-5 py-2 rounded-full font-sans text-sm whitespace-nowrap"
         :class="hasLink ? 'bg-[rgba(10,15,30,0.6)] border border-cyan-500/50 text-cyan-100 shadow-[0_0_15px_rgba(0,255,255,0.2)] hover:shadow-[0_0_25px_rgba(0,255,255,0.4)] hover:bg-[rgba(10,15,30,0.8)] hover:scale-105 active:scale-95' : 'text-blue-400 hover:text-white'"
       >
         <span v-if="hasLink" class="flex flex-col items-center justify-center px-2">
-          <span class="tracking-wide font-medium text-base">Add Link to Stream</span>
+          <span class="tracking-wide font-medium text-base">
+            {{ hasEnoughDroplets ? 'Add Link to Stream' : 'Insufficient Droplets' }}
+          </span>
           <span class="text-[10px] text-cyan-400/80 font-mono uppercase tracking-widest mt-1 flex items-center gap-1">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 2c-1.716 3.197-5 7.14-5 10a5 5 0 1010 0c0-2.86-3.284-6.803-5-10z" clip-rule="evenodd" />
             </svg>
-            Consumes {{ formattedPrice }} Dropplets
+            {{ hasEnoughDroplets ? `Consumes ${formattedPrice} Droplets` : `Needs ${formattedPrice} Droplets (Click links to earn)` }}
           </span>
         </span>
         <span v-else>
@@ -57,29 +59,36 @@ import { getSimilarity } from '../utils/similarity';
 const props = defineProps<{
   knownThoughts: { text: string; count: number }[];
   currentLinkPrice?: number;
+  dripletBalance: number;
 }>();
 
 const emit = defineEmits(['submit']);
 const content = ref('');
 
-// URL Regex for detecting links anywhere in the input
 const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+([^\s]?)+)/i;
 const hasLink = computed(() => urlRegex.test(content.value));
 
 const formattedPrice = computed(() => Math.round(props.currentLinkPrice || 10));
 
+const hasEnoughDroplets = computed(() => {
+  const price = (props.currentLinkPrice || 10) * 100; // Price is in Droplets, balance is in Driplets
+  const isSufficient = props.dripletBalance >= price;
+  return isSufficient;
+});
+
 const suggestions = computed(() => {
   const query = content.value.trim();
-  if (!query) return [];
+  const isQueryEmpty = !query;
+  if (isQueryEmpty) return [];
 
   return props.knownThoughts
     .map(thought => ({
       ...thought,
       score: getSimilarity(query, thought.text)
     }))
-    .filter(thought => thought.score > 0.2) // Threshold for similarity
+    .filter(thought => thought.score > 0.2)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 5); // Limit to top 5
+    .slice(0, 5);
 });
 
 const selectSuggestion = (text: string) => {
@@ -88,12 +97,10 @@ const selectSuggestion = (text: string) => {
 };
 
 const submit = () => {
-  if (content.value.trim()) {
-    if (hasLink.value) {
-      // TODO: Actual integration to deduct dropplets based on community drip rate goes here
-      console.log(`Deducting ${formattedPrice.value} dropplets for link stream`);
-    }
-    emit('submit', content.value.trim());
+  const queryText = content.value.trim();
+  const isQueryNotEmpty = !!queryText;
+  if (isQueryNotEmpty) {
+    emit('submit', queryText);
     content.value = '';
   }
 };

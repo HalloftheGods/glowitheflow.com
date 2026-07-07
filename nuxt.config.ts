@@ -1,5 +1,10 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
+  runtimeConfig: {
+    public: {
+      apiBaseUrl: 'https://api.glowitheflow.com'
+    }
+  },
   nitro: {
     preset: 'github-pages'
   },
