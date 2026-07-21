@@ -8,7 +8,6 @@ class Test_Glow_API_E2E extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
-        $this->markTestIncomplete('Placeholder API tests for Milestone 2');
         Monkey\Functions\expect('home_url')
             ->andReturn('https://example.com');
         Monkey\Functions\expect('get_transient')

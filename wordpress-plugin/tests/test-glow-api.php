@@ -6,7 +6,6 @@ class Test_Glow_API extends TestCase {
     protected function setUp(): void {
         parent::setUp();
         Monkey\setUp();
-        $this->markTestIncomplete('Placeholder API tests for Milestone 2');
     }
 
     protected function tearDown(): void {

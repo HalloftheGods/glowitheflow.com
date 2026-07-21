@@ -71,9 +71,11 @@ CREATE TABLE $table_tx (
     }
 
     public static function get_user_stats($user_id) {
-        if ($user_id <= 0) {
+        $validated_id = filter_var($user_id, FILTER_VALIDATE_INT);
+        if ($validated_id === false || $validated_id <= 0) {
             return null;
         }
+        $user_id = $validated_id;
         global $wpdb;
         $table = self::get_table_name('user_stats');
         $query = $wpdb->prepare("SELECT * FROM $table WHERE user_id = %s", $user_id);
@@ -109,9 +111,11 @@ CREATE TABLE $table_tx (
     }
 
     public static function initialize_user_stats($user_id) {
-        if ($user_id <= 0) {
+        $validated_id = filter_var($user_id, FILTER_VALIDATE_INT);
+        if ($validated_id === false || $validated_id <= 0) {
             return null;
         }
+        $user_id = $validated_id;
         global $wpdb;
         $table = self::get_table_name('user_stats');
         $stats = [
@@ -164,9 +168,11 @@ CREATE TABLE $table_tx (
     }
 
     public static function log_transaction($user_id, $amount, $unit, $type, $details) {
-        if ($user_id <= 0) {
+        $validated_id = filter_var($user_id, FILTER_VALIDATE_INT);
+        if ($validated_id === false || $validated_id <= 0) {
             return false;
         }
+        $user_id = $validated_id;
         if (!is_numeric($amount) || is_nan($amount) || is_infinite($amount)) {
             return false;
         }

@@ -1,23 +1,33 @@
-# Nuxt Minimal Starter
+# GlowitheFlow
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+The third emanation of the sacred realm. A canvas of infinite possibilities where your attention generates value.
+
+## Overview
+
+GlowitheFlow is an interactive, gamified platform where users generate simulated ad revenue (LTV) by engaging with floating text nodes. Click on thoughts flowing through the stream to earn **Driplets**, which can be converted into **Droplets** and used to cast your own links into the network. 
+
+The community dynamically votes on the cost to drop a link, simulating a real-time attention economy.
+
+## Terminology
+* Driplet: Users earn dripplets through their time and interaction on glowitheflow
+  * The longer the stream, the more dripplets
+  * The more clicks the more driplets. 
+* Droplet: 
+  * 100 driplets = 1 Droplet
+  * Spend droplets to drop links into the network
+  * The community votes on the costs of a drop. 
+  * The amount of droplets you spend determines the drip rate.
+## Tech Stack
+* **Frontend:** Nuxt 3, Vue 3, Canvas API, Tailwind CSS
+* **Backend:** WordPress Plugin REST API
+* **Testing:** Vitest (Frontend) / PHPUnit & Brain Monkey (Backend)
 
 ## Setup
 
 Make sure to install dependencies:
 
 ```bash
-# npm
-npm install
-
-# pnpm
 pnpm install
-
-# yarn
-yarn install
-
-# bun
-bun install
 ```
 
 ## Development Server
@@ -25,51 +35,23 @@ bun install
 Start the development server on `http://localhost:3000`:
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
 pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
 ```
 
-## Production
+## Backend Setup (WordPress)
+1. Navigate to `wordpress-plugin/`
+2. Run `composer install` for PHP dependencies
+3. Follow the `TEST_INFRA.md` guidelines for test suites.
 
-Build the application for production:
+## Testing
 
+Run frontend Vitest suite:
 ```bash
-# npm
-npm run build
-
-# pnpm
-pnpm build
-
-# yarn
-yarn build
-
-# bun
-bun run build
+pnpm test
 ```
 
-Locally preview production build:
-
+Run backend PHPUnit suite:
 ```bash
-# npm
-npm run preview
-
-# pnpm
-pnpm preview
-
-# yarn
-yarn preview
-
-# bun
-bun run preview
+cd wordpress-plugin
+./vendor/bin/phpunit
 ```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.

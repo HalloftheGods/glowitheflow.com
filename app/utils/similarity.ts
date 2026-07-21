@@ -20,8 +20,10 @@ export function getSimilarity(s1: string, s2: string): number {
 
   if (str1 === str2) return 1.0;
 
-  // Substring checks
-  if (str2.includes(str1) || str1.includes(str2)) {
+  // Substring checks with word boundary constraints
+  const regex1 = new RegExp('\\b' + str1 + '\\b');
+  const regex2 = new RegExp('\\b' + str2 + '\\b');
+  if (regex1.test(str2) || regex2.test(str1)) {
     const ratio = Math.min(str1.length, str2.length) / Math.max(str1.length, str2.length);
     return 0.5 + ratio * 0.4;
   }
@@ -29,7 +31,8 @@ export function getSimilarity(s1: string, s2: string): number {
   const set1 = new Set(words1);
   const set2 = new Set(words2);
 
-  const intersection = new Set([...set1].filter((x) => set2.has(x)));
+  const hasElementInSet2 = (x: string) => set2.has(x);
+  const intersection = new Set([...set1].filter(hasElementInSet2));
   const union = new Set([...set1, ...set2]);
 
   return intersection.size / union.size;

@@ -187,14 +187,6 @@ class Glow_API extends WP_REST_Controller {
             return new WP_Error('glow_db_error', 'User stats not found', ['status' => 500]);
         }
 
-        $cost = 10;
-        if ($is_drop) {
-            $has_insufficient_droplets = $stats['droplet_balance'] < $cost;
-            if ($has_insufficient_droplets) {
-                return new WP_Error('glow_insufficient_balance', 'Insufficient droplet balance', ['status' => 400]);
-            }
-        }
-
         $txn_started = $wpdb->query('START TRANSACTION');
         $has_txn_failed = $txn_started === false;
         if ($has_txn_failed) {
@@ -202,15 +194,31 @@ class Glow_API extends WP_REST_Controller {
         }
 
         try {
+            $table_stats = Glow_DB::get_table_name('user_stats');
+            $locked_row = $wpdb->get_row(
+                $wpdb->prepare("SELECT * FROM $table_stats WHERE user_id = %d FOR UPDATE", $user_id),
+                ARRAY_A
+            );
+            if (!$locked_row) {
+                $wpdb->query('ROLLBACK');
+                return new WP_Error('glow_db_error', 'Failed to lock user stats', ['status' => 500]);
+            }
+
+            $cost = 10;
             if ($is_drop) {
-                $new_droplets = $stats['droplet_balance'] - $cost;
-                $table_stats = Glow_DB::get_table_name('user_stats');
+                $has_insufficient_droplets = (int) $locked_row['droplet_balance'] < $cost;
+                if ($has_insufficient_droplets) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('glow_insufficient_balance', 'Insufficient droplet balance', ['status' => 400]);
+                }
+
+                $new_droplets = (int) $locked_row['droplet_balance'] - $cost;
                 $updated_stats = $wpdb->update(
                     $table_stats,
                     ['droplet_balance' => $new_droplets],
                     ['user_id' => $user_id],
                     ['%d'],
-                    ['%s']
+                    ['%d']
                 );
 
                 $has_update_failed = $updated_stats === false;
@@ -228,31 +236,65 @@ class Glow_API extends WP_REST_Controller {
             }
 
             $table_posts = Glow_DB::get_table_name('posts');
-            $post_data = [
-                'user_id'         => $user_id,
-                'type'            => $type,
-                'content'         => $content,
-                'link'            => $link,
-                'title'           => $title,
-                'tributary'       => $tributary,
-                'passenger_count' => 1,
-                'glow_score'      => 0,
-                'created_at'      => current_time('mysql'),
-            ];
-
-            $inserted_post = $wpdb->insert(
-                $table_posts,
-                $post_data,
-                ['%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s']
-            );
-
-            $has_insert_failed = $inserted_post === false;
-            if ($has_insert_failed) {
-                $wpdb->query('ROLLBACK');
-                return new WP_Error('glow_db_error', 'Failed to insert post', ['status' => 500]);
+            if ($is_thought) {
+                if ($tributary === null) {
+                    $query_thought = $wpdb->prepare(
+                        "SELECT * FROM $table_posts WHERE type = 'thought' AND content = %s AND tributary IS NULL FOR UPDATE",
+                        $content
+                    );
+                } else {
+                    $query_thought = $wpdb->prepare(
+                        "SELECT * FROM $table_posts WHERE type = 'thought' AND content = %s AND tributary = %s FOR UPDATE",
+                        $content,
+                        $tributary
+                    );
+                }
+                $existing_thought = $wpdb->get_row($query_thought, ARRAY_A);
+            } else {
+                $existing_thought = null;
             }
 
-            $post_id = $wpdb->insert_id;
+            if ($existing_thought !== null) {
+                $new_passenger_count = (int) $existing_thought['passenger_count'] + 1;
+                $updated_post = $wpdb->update(
+                    $table_posts,
+                    ['passenger_count' => $new_passenger_count],
+                    ['id' => (int) $existing_thought['id']],
+                    ['%d'],
+                    ['%d']
+                );
+                if ($updated_post === false) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('glow_db_error', 'Failed to update passenger count', ['status' => 500]);
+                }
+                $post_id = (int) $existing_thought['id'];
+            } else {
+                $post_data = [
+                    'user_id'         => $user_id,
+                    'type'            => $type,
+                    'content'         => $content,
+                    'link'            => $link,
+                    'title'           => $title,
+                    'tributary'       => $tributary,
+                    'passenger_count' => 1,
+                    'glow_score'      => 0,
+                    'created_at'      => current_time('mysql'),
+                ];
+
+                $inserted_post = $wpdb->insert(
+                    $table_posts,
+                    $post_data,
+                    ['%d', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s']
+                );
+
+                $has_insert_failed = $inserted_post === false;
+                if ($has_insert_failed) {
+                    $wpdb->query('ROLLBACK');
+                    return new WP_Error('glow_db_error', 'Failed to insert post', ['status' => 500]);
+                }
+                $post_id = $wpdb->insert_id;
+            }
+
             $wpdb->query('COMMIT');
 
             $latest_stats = Glow_DB::get_user_stats($user_id);
@@ -630,20 +672,7 @@ class Glow_API extends WP_REST_Controller {
                 set_transient($lock_key, '1', 60);
             }
 
-            if (!empty($session_id)) {
-                global $wpdb;
-                $table_tx = Glow_DB::get_table_name('transactions');
-                $session_like = '%' . $wpdb->esc_like($session_id) . '%';
-                $query_tx = $wpdb->prepare("SELECT id FROM $table_tx WHERE details LIKE %s", $session_like);
-                $existing_tx_id = $wpdb->get_var($query_tx);
-                if ($existing_tx_id !== null) {
-                    $response_data = [
-                        'success' => true,
-                        'already_processed' => true,
-                    ];
-                    return new WP_REST_Response($response_data, 200);
-                }
-            }
+
 
             $metadata = isset($session['metadata']) ? $session['metadata'] : [];
             $user_id = isset($metadata['user_id']) ? (int) $metadata['user_id'] : 0;
@@ -670,24 +699,6 @@ class Glow_API extends WP_REST_Controller {
                 return new WP_Error('glow_invalid_pack', 'Invalid package in metadata', ['status' => 400]);
             }
 
-            if ($has_coupon) {
-                global $wpdb;
-                $table_tx = Glow_DB::get_table_name('transactions');
-                $coupon_search = '%[coupon: ' . $coupon_upper . ']%';
-                $query_coupon_used = $wpdb->prepare(
-                    "SELECT id FROM $table_tx WHERE user_id = %d AND details LIKE %s",
-                    $user_id,
-                    $coupon_search
-                );
-                $coupon_used_id = $wpdb->get_var($query_coupon_used);
-                if ($coupon_used_id !== null) {
-                    if (!empty($lock_key)) {
-                        delete_transient($lock_key);
-                    }
-                    return new WP_Error('glow_coupon_already_used', 'Coupon has already been used', ['status' => 400]);
-                }
-            }
-
             $package = $packages[$pack_id];
             $droplet_amount = $package['droplets'];
 
@@ -702,8 +713,12 @@ class Glow_API extends WP_REST_Controller {
             }
 
             try {
-                $stats = Glow_DB::get_user_stats($user_id);
-                $is_stats_empty = $stats === null;
+                $table_stats = Glow_DB::get_table_name('user_stats');
+                $locked_row = $wpdb->get_row(
+                    $wpdb->prepare("SELECT * FROM $table_stats WHERE user_id = %d FOR UPDATE", $user_id),
+                    ARRAY_A
+                );
+                $is_stats_empty = $locked_row === null;
                 if ($is_stats_empty) {
                     $wpdb->query('ROLLBACK');
                     if (!empty($lock_key)) {
@@ -712,14 +727,46 @@ class Glow_API extends WP_REST_Controller {
                     return new WP_Error('glow_user_not_found', 'User stats not found', ['status' => 404]);
                 }
 
-                $new_droplets = $stats['droplet_balance'] + $droplet_amount;
-                $table_stats = Glow_DB::get_table_name('user_stats');
+                if (!empty($session_id)) {
+                    $table_tx = Glow_DB::get_table_name('transactions');
+                    $session_like = '%' . $wpdb->esc_like($session_id) . '%';
+                    $query_tx = $wpdb->prepare("SELECT id FROM $table_tx WHERE details LIKE %s", $session_like);
+                    $existing_tx_id = $wpdb->get_var($query_tx);
+                    if ($existing_tx_id !== null) {
+                        $wpdb->query('ROLLBACK');
+                        $response_data = [
+                            'success' => true,
+                            'already_processed' => true,
+                        ];
+                        return new WP_REST_Response($response_data, 200);
+                    }
+                }
+
+                if ($has_coupon) {
+                    $table_tx = Glow_DB::get_table_name('transactions');
+                    $coupon_search = '%[coupon: ' . $coupon_upper . ']%';
+                    $query_coupon_used = $wpdb->prepare(
+                        "SELECT id FROM $table_tx WHERE user_id = %d AND details LIKE %s",
+                        $user_id,
+                        $coupon_search
+                    );
+                    $coupon_used_id = $wpdb->get_var($query_coupon_used);
+                    if ($coupon_used_id !== null) {
+                        $wpdb->query('ROLLBACK');
+                        if (!empty($lock_key)) {
+                            delete_transient($lock_key);
+                        }
+                        return new WP_Error('glow_coupon_already_used', 'Coupon has already been used', ['status' => 400]);
+                    }
+                }
+
+                $new_droplets = (int) $locked_row['droplet_balance'] + $droplet_amount;
                 $updated_stats = $wpdb->update(
                     $table_stats,
                     ['droplet_balance' => $new_droplets],
                     ['user_id' => $user_id],
                     ['%d'],
-                    ['%s']
+                    ['%d']
                 );
 
                 $is_update_failed = $updated_stats === false;

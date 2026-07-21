@@ -28,6 +28,7 @@ export class WaterEngine {
   private thoughts: WaterThought[] = [];
   private ripples: WaterRipple[] = [];
   private isDashboardOpen: boolean = false;
+  private boundResizeHandler = () => this.onResize();
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -79,7 +80,7 @@ export class WaterEngine {
     this.mesh = new THREE.Mesh(this.geometry, material);
     this.scene.add(this.mesh);
 
-    window.addEventListener('resize', this.onResize.bind(this));
+    window.addEventListener('resize', this.boundResizeHandler);
   }
 
   public init() {
@@ -242,7 +243,7 @@ export class WaterEngine {
     if (this.animationId !== undefined) {
       cancelAnimationFrame(this.animationId);
     }
-    window.removeEventListener('resize', this.onResize.bind(this));
+    window.removeEventListener('resize', this.boundResizeHandler);
     this.geometry.dispose();
     if (this.mesh.material instanceof THREE.Material) {
       this.mesh.material.dispose();

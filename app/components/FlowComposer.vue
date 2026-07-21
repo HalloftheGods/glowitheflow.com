@@ -31,6 +31,33 @@
       </button>
     </div>
 
+    <!-- Dropdown and Optional Textarea when hasLink is true -->
+    <div v-if="hasLink" class="mt-4 border-t border-cyan-500/20 pt-4 flex flex-col gap-4 text-left">
+      <div class="flex flex-col md:flex-row md:items-center gap-2">
+        <label for="tributary-select" class="text-sm font-mono text-cyan-300">Tributary:</label>
+        <select
+          id="tributary-select"
+          v-model="selectedTributary"
+          class="bg-cyan-950 border border-cyan-500/30 text-white rounded-lg px-3 py-1.5 outline-none font-mono text-sm focus:border-cyan-300"
+        >
+          <option value="t/dev">t/dev</option>
+          <option value="t/art">t/art</option>
+          <option value="t/memes">t/memes</option>
+          <option value="t/music">t/music</option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="body-text" class="text-sm font-mono text-cyan-300">Body Text (Optional):</label>
+        <textarea
+          id="body-text"
+          v-model="bodyText"
+          placeholder="Optional text to go with your link..."
+          rows="3"
+          class="w-full bg-cyan-950/40 border border-cyan-500/20 text-white text-sm rounded-xl p-3 outline-none focus:border-cyan-500/50 resize-none font-sans"
+        ></textarea>
+      </div>
+    </div>
+
     <!-- Suggestions Typeahead -->
     <div
       v-if="suggestions.length > 0 && content.trim().length > 0"
@@ -55,15 +82,19 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { getSimilarity } from '../utils/similarity';
+import { useUserStore } from '../stores/user';
 
 const props = defineProps<{
   knownThoughts: { text: string; count: number }[];
   currentLinkPrice?: number;
-  dripletBalance: number;
 }>();
 
 const emit = defineEmits(['submit']);
 const content = ref('');
+const selectedTributary = ref('t/dev');
+const bodyText = ref('');
+
+const userStore = useUserStore();
 
 const urlRegex = /(https?:\/\/[^\s]+)|(www\.[^\s]+)|([a-zA-Z0-9]+(\.[a-zA-Z0-9]+)+([^\s]?)+)/i;
 const hasLink = computed(() => urlRegex.test(content.value));
@@ -71,10 +102,21 @@ const hasLink = computed(() => urlRegex.test(content.value));
 const formattedPrice = computed(() => Math.round(props.currentLinkPrice || 10));
 
 const hasEnoughDroplets = computed(() => {
-  const price = (props.currentLinkPrice || 10) * 100; // Price is in Droplets, balance is in Driplets
-  const isSufficient = props.dripletBalance >= price;
-  return isSufficient;
+  const price = props.currentLinkPrice || 10;
+  return userStore.dropletBalance >= price;
 });
+
+const mapToThoughtWithScore = (thought: { text: string; count: number }) => {
+  const query = content.value.trim();
+  return {
+    ...thought,
+    score: getSimilarity(query, thought.text)
+  };
+};
+
+const filterByScoreThreshold = (thought: { score: number }) => thought.score > 0.2;
+
+const sortByScoreDesc = (a: { score: number }, b: { score: number }) => b.score - a.score;
 
 const suggestions = computed(() => {
   const query = content.value.trim();
@@ -82,26 +124,58 @@ const suggestions = computed(() => {
   if (isQueryEmpty) return [];
 
   return props.knownThoughts
-    .map(thought => ({
-      ...thought,
-      score: getSimilarity(query, thought.text)
-    }))
-    .filter(thought => thought.score > 0.2)
-    .sort((a, b) => b.score - a.score)
+    .map(mapToThoughtWithScore)
+    .filter(filterByScoreThreshold)
+    .sort(sortByScoreDesc)
     .slice(0, 5);
 });
 
-const selectSuggestion = (text: string) => {
-  emit('submit', text);
-  content.value = '';
+const selectSuggestion = async (text: string) => {
+  try {
+    const response = await userStore.submitPost('thought', text);
+    emit('submit', {
+      type: 'thought',
+      content: text,
+      response,
+    });
+    content.value = '';
+  } catch (error) {
+    console.error('Failed to submit suggestion:', error);
+  }
 };
 
-const submit = () => {
+const submit = async () => {
   const queryText = content.value.trim();
-  const isQueryNotEmpty = !!queryText;
-  if (isQueryNotEmpty) {
-    emit('submit', queryText);
+  if (!queryText) return;
+
+  const isLink = hasLink.value;
+  const type = isLink ? 'drop' : 'thought';
+
+  if (isLink && !hasEnoughDroplets.value) {
+    return;
+  }
+
+  try {
+    const extra = isLink ? {
+      link: queryText,
+      tributary: selectedTributary.value,
+    } : undefined;
+
+    const postContent = isLink ? (bodyText.value.trim() || queryText) : queryText;
+
+    const response = await userStore.submitPost(type, postContent, extra);
+    emit('submit', {
+      type,
+      content: postContent,
+      link: queryText,
+      tributary: selectedTributary.value,
+      response,
+    });
+
     content.value = '';
+    bodyText.value = '';
+  } catch (error) {
+    console.error('Failed to submit post:', error);
   }
 };
 </script>
@@ -109,7 +183,7 @@ const submit = () => {
 <style scoped>
   .flow-composer-card {
     backdrop-filter: blur(20px);
-    border-radius: 100px;
+    border-radius: 24px;
     border: 1px solid rgba(0, 255, 255, 0.3);
     background: rgba(10, 15, 30, 0.4);
     animation: flowBreathe 4s ease-in-out infinite;
