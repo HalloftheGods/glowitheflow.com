@@ -1,26 +1,16 @@
-import { defineNuxtModule } from '@nuxt/kit'
-import piniaModule from '@pinia/nuxt'
-
-const pinia = defineNuxtModule({
-  meta: {
-    name: 'pinia',
-    configKey: 'pinia',
-    compatibility: {
-      nuxt: '>=3.0.0'
-    }
-  },
-  setup(options, nuxt) {
-    const fn = (piniaModule as any).default || piniaModule
-    return fn(options, nuxt)
-  }
-})
-
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   ssr: false,
+  app: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/'
+  },
+  devServer: {
+    port: 5177,
+    host: '0.0.0.0'
+  },
   runtimeConfig: {
     public: {
-      apiBaseUrl: 'https://api.glowitheflow.com'
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || '/wp-json'
     }
   },
   nitro: {
@@ -34,7 +24,7 @@ export default defineNuxtConfig({
   modules: [
     '@nuxt/fonts',
     'nuxt-gtag',
-    pinia
+    '@pinia/nuxt'
   ],
   gtag: {
     id: 'G-SYYZTC5HFC'

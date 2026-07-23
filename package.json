@@ -5,8 +5,8 @@
   "private": true,
   "packageManager": "pnpm@10.33.0",
   "scripts": {
-    "build": "nuxt build",
-    "dev": "nuxt dev",
+    "build": "nuxt generate && rm -rf ../../wp-content/plugins/xophz-compass-glowitheflow/public/dist && mkdir -p ../../wp-content/plugins/xophz-compass-glowitheflow/public/dist && cp -r .output/public/* ../../wp-content/plugins/xophz-compass-glowitheflow/public/dist/",
+    "dev": "nuxt dev --port 5177 --host 0.0.0.0",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -19,7 +19,7 @@
     "pinia": "^2.3.1",
     "three": "^0.185.1",
     "vue": "^3.5.30",
-    "vue-router": "^5.0.4"
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@nuxt/fonts": "^0.14.0",
@@ -33,12 +33,5 @@
     "happy-dom": "^17.1.0",
     "tailwindcss": "^4.2.2",
     "vitest": "^3.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@parcel/watcher",
-      "esbuild",
-      "vue-demi"
-    ]
   }
 }

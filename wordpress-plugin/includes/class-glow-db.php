@@ -83,22 +83,25 @@ CREATE TABLE $table_tx (
         if (!$row) {
             $has_db_error = (!empty($wpdb->last_error));
             if ($has_db_error) {
-                return null;
-            }
-            $initialized_stats = null;
-            try {
-                $initialized_stats = self::initialize_user_stats($user_id);
-            } catch (\Throwable $e) {
-            }
-            $has_failed_initialization = ($initialized_stats === null);
-            if ($has_failed_initialization) {
+                self::create_tables();
                 $row = $wpdb->get_row($query, ARRAY_A);
-                $has_no_fallback_row = (!$row);
-                if ($has_no_fallback_row) {
-                    return null;
+            }
+            if (!$row) {
+                $initialized_stats = null;
+                try {
+                    $initialized_stats = self::initialize_user_stats($user_id);
+                } catch (\Throwable $e) {
                 }
-            } else {
-                return $initialized_stats;
+                $has_failed_initialization = ($initialized_stats === null);
+                if ($has_failed_initialization) {
+                    $row = $wpdb->get_row($query, ARRAY_A);
+                    $has_no_fallback_row = (!$row);
+                    if ($has_no_fallback_row) {
+                        return null;
+                    }
+                } else {
+                    return $initialized_stats;
+                }
             }
         }
         return [

@@ -291,15 +291,14 @@ export class CanvasEngine {
             .catch(handleBoostError);
         }
 
-        const isDrop = clickedThought.type === 'drop' || (clickedThought.link && clickedThought.link.trim().length > 0);
+        const isDrop = clickedThought.type === 'drop' && typeof clickedThought.link === 'string' && clickedThought.link.trim().length > 0;
         if (isDrop && clickedThought.link) {
-          window.open(clickedThought.link, '_blank');
-        } else {
-          const urlRegex = /^(https?:\/\/[^\s]+)$/i;
-          const isUrl = urlRegex.test(clickedThought.text);
-          if (isUrl) {
-            window.open(clickedThought.text, '_blank');
+          let targetUrl = clickedThought.link.trim();
+          const hasProtocol = targetUrl.startsWith('http://') || targetUrl.startsWith('https://');
+          if (!hasProtocol) {
+            targetUrl = `https://${targetUrl}`;
           }
+          window.open(targetUrl, '_blank');
         }
 
         this.ripples.push({
