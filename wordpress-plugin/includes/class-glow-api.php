@@ -63,12 +63,21 @@ class Glow_API extends WP_REST_Controller {
     }
 
     private function get_user_gp($user_id) {
-        $total_gp = get_user_meta($user_id, '_xp_total_gp', true);
-        if ($total_gp === '' || $total_gp === false) {
-            $total_gp = 50;
-            update_user_meta($user_id, '_xp_total_gp', 50);
+        if (class_exists('Xophz_Compass_Xp_Players')) {
+            $stats = Xophz_Compass_Xp_Players::get_user_stats($user_id);
+            return (int) $stats['total_gp'];
         }
-        return (int) $total_gp;
+        $blog_id = function_exists('get_current_blog_id') ? get_current_blog_id() : 1;
+        $site_gp = get_user_meta($user_id, "_xp_s{$blog_id}_total_gp", true);
+        if ($site_gp === '' || $site_gp === false) {
+            $site_gp = get_user_meta($user_id, '_xp_total_gp', true);
+            if ($site_gp === '' || $site_gp === false) {
+                $site_gp = 50;
+                update_user_meta($user_id, '_xp_total_gp', 50);
+            }
+            update_user_meta($user_id, "_xp_s{$blog_id}_total_gp", $site_gp);
+        }
+        return (int) $site_gp;
     }
 
     public function get_user($request) {
