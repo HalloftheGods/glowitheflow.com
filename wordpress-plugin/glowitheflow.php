@@ -22,4 +22,8 @@ spl_autoload_register($autoload_callback);
 register_activation_hook(__FILE__, ['Glow_DB', 'activate']);
 register_deactivation_hook(__FILE__, ['Glow_DB', 'deactivate']);
 
+$glow_auth_handler = new Glow_Auth_Handler();
+$glow_auth_handler->init();
+
 add_action('rest_api_init', [new Glow_API(), 'register_routes']);
+
